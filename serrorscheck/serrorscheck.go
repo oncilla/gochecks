@@ -40,8 +40,10 @@ var Analyzer = &analysis.Analyzer{
 
 func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
-		// TODO(roosd): resolve correct pkg name
-		tgtPkg := "serrors"
+		tgtPkg := findPkgName(file)
+		if tgtPkg == "" {
+			continue
+		}
 		ast.Inspect(file, func(n ast.Node) bool {
 			ce, ok := n.(*ast.CallExpr)
 			if !ok {
@@ -91,6 +93,19 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		})
 	}
 	return nil, nil
+}
+
+func findPkgName(file *ast.File) string {
+	var tgtPkg string
+	for _, imp := range file.Imports {
+		if imp.Path.Value == `"github.com/scionproto/scion/go/lib/serrors"` {
+			tgtPkg = "serrors"
+			if imp.Name != nil {
+				tgtPkg = imp.Name.Name
+			}
+		}
+	}
+	return tgtPkg
 }
 
 func render(fset *token.FileSet, x interface{}) string {
