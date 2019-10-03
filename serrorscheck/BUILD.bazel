@@ -1,9 +1,15 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_tool_library")
 
-#gazelle:ignore gazelle would add a go_library block which we don't need here.
+go_library(
+    name = "go_default_library",
+    srcs = ["serrorscheck.go"],
+    importpath = "github.com/oncilla/gochecks/serrorscheck",
+    visibility = ["//visibility:public"],
+    deps = ["@org_golang_x_tools//go/analysis:go_tool_library"],
+)
 
 go_tool_library(
-    name = "serrorscheck",
+    name = "go_tool_library",
     srcs = ["serrorscheck.go"],
     importpath = "github.com/oncilla/gochecks/serrorscheck",
     visibility = ["//visibility:public"],
