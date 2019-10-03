@@ -22,9 +22,7 @@
 
 package fail
 
-import (
-	"github.com/scionproto/scion/go/lib/serrors"
-)
+import "github.com/scionproto/scion/go/lib/serrors"
 
 const (
 	untyped     = "untyped_key"
@@ -79,7 +77,7 @@ func invalidType() {
 }
 
 func noCtx() {
-	serrors.WithCtx(errBase) // want `should have context:.*`
+	serrors.WithCtx(errBase) // want `should have context:`
 }
 
 type key string

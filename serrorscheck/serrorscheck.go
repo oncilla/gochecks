@@ -36,7 +36,7 @@ import (
 
 // Analyzer checks all calls on the serrors package.
 var Analyzer = &analysis.Analyzer{
-	Name:             "serrorslint",
+	Name:             "serrorscheck",
 	Doc:              "reports invalid serrors calls",
 	Run:              run,
 	RunDespiteErrors: true,
@@ -85,14 +85,14 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				return true
 			}
 			if len(varargs)%2 != 0 {
-				pass.Reportf(varargs[0].Pos(), "context should be even: len=%d ctx=%s",
-					len(varargs), renderCtx(pass.Fset, varargs))
+				pass.Reportf(varargs[0].Pos(), "context should be even: len=%d ctx=%s expr=%q",
+					len(varargs), renderCtx(pass.Fset, varargs), render(pass.Fset, ce))
 			}
 			for i := 0; i < len(varargs); i += 2 {
 				lit := varargs[i]
 				if !isString(pass, lit) {
-					pass.Reportf(lit.Pos(), "key should be string: type=%q name=%q",
-						pass.TypesInfo.TypeOf(lit), render(pass.Fset, lit))
+					pass.Reportf(lit.Pos(), "key should be string: type=%q name=%q expr=%q",
+						pass.TypesInfo.TypeOf(lit), render(pass.Fset, lit), render(pass.Fset, ce))
 				}
 			}
 			return true
