@@ -24,18 +24,22 @@ package serrorscheck
 
 import (
 	"bytes"
+	"fmt"
 	"go/ast"
 	"go/printer"
 	"go/token"
+	"go/types"
+	"strings"
 
 	"golang.org/x/tools/go/analysis"
 )
 
 // Analyzer checks all calls on the serrors package.
 var Analyzer = &analysis.Analyzer{
-	Name: "serrorslint",
-	Doc:  "reports invalid serrors calls",
-	Run:  run,
+	Name:             "serrorslint",
+	Doc:              "reports invalid serrors calls",
+	Run:              run,
+	RunDespiteErrors: true,
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
@@ -66,7 +70,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				varargs = ce.Args[1:]
 			case "WithCtx":
 				if len(ce.Args) < 2 {
-					pass.Reportf(ce.Pos(), "should have context: %q", render(pass.Fset, ce))
+					pass.Reportf(ce.Pos(), "should have context: expr=%q", render(pass.Fset, ce))
 					return true
 				}
 				varargs = ce.Args[1:]
@@ -81,12 +85,14 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				return true
 			}
 			if len(varargs)%2 != 0 {
-				pass.Reportf(varargs[0].Pos(), "context should be even: %q", render(pass.Fset, ce))
+				pass.Reportf(varargs[0].Pos(), "context should be even: len=%d ctx=%s",
+					len(varargs), renderCtx(pass.Fset, varargs))
 			}
 			for i := 0; i < len(varargs); i += 2 {
 				lit := varargs[i]
-				if bl, ok := lit.(*ast.BasicLit); !ok || bl.Kind != token.STRING {
-					pass.Reportf(lit.Pos(), "key should be string: %q", render(pass.Fset, lit))
+				if !isString(pass, lit) {
+					pass.Reportf(lit.Pos(), "key should be string: type=%q name=%q",
+						pass.TypesInfo.TypeOf(lit), render(pass.Fset, lit))
 				}
 			}
 			return true
@@ -106,6 +112,19 @@ func findPkgName(file *ast.File) string {
 		}
 	}
 	return tgtPkg
+}
+
+func isString(pass *analysis.Pass, lit ast.Expr) bool {
+	t, ok := pass.TypesInfo.TypeOf(lit).Underlying().(*types.Basic)
+	return ok && t.Info()&types.IsString != 0
+}
+
+func renderCtx(fset *token.FileSet, varargs []ast.Expr) string {
+	var p []string
+	for _, arg := range varargs {
+		p = append(p, render(fset, arg))
+	}
+	return fmt.Sprintf("[%s]", strings.Join(p, ","))
 }
 
 func render(fset *token.FileSet, x interface{}) string {
